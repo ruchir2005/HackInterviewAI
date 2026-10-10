@@ -215,31 +215,20 @@ export default function InterviewSelectionPage() {
     }
   };
 
-  const canStart = (() => {
-    if (!selectedPrimary) return false;
-    if (selectedPrimary !== "institution") return true;
-    if (!selectedInstitution) return false;
-    if (selectedInstitution === "college")
-      return !!selectedCollege && !!selectedDomain;
-    if (selectedInstitution === "individual") return selectedChips.size > 0;
-    return false;
-  })();
+  const canStart = !!selectedPrimary;
 
   const handleStart = () => {
     if (!canStart) return;
 
+    // Institution access is resolved from the signed-in user's verified
+    // server-side memberships. UI selection/query parameters grant nothing.
+    if (selectedPrimary === "institution") {
+      router.push("/institution");
+      return;
+    }
+
     const params = new URLSearchParams();
     params.set("type", selectedPrimary!);
-
-    if (selectedPrimary === "institution" && selectedInstitution) {
-      params.set("sub", selectedInstitution);
-      if (selectedInstitution === "college") {
-        if (selectedCollege) params.set("college", selectedCollege);
-        if (selectedDomain) params.set("domain", selectedDomain);
-      } else {
-        params.set("categories", Array.from(selectedChips).join(","));
-      }
-    }
 
     router.push(`/resume?${params.toString()}`);
   };
@@ -253,13 +242,10 @@ export default function InterviewSelectionPage() {
   }
 
   // ─── Tier detection ──
-  const showInstitutionSub =
-    selectedPrimary === "institution" && !selectedInstitution;
-  const showCollegeForm =
-    selectedPrimary === "institution" && selectedInstitution === "college";
-  const showIndividualChips =
-    selectedPrimary === "institution" && selectedInstitution === "individual";
-  const showPrimary = !selectedPrimary || selectedPrimary !== "institution";
+  const showInstitutionSub = false;
+  const showCollegeForm = false;
+  const showIndividualChips = false;
+  const showPrimary = true;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-16 relative">

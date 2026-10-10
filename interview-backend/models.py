@@ -5,7 +5,7 @@ Defines User, InterviewSession, Question, and SoftSkillsMetric tables
 
 from datetime import datetime
 from typing import Optional, List
-from sqlalchemy import String, Integer, Float, Text, DateTime, ForeignKey, Boolean, JSON, UniqueConstraint
+from sqlalchemy import String, Integer, Float, Text, DateTime, ForeignKey, Boolean, JSON, UniqueConstraint, CheckConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 import uuid
@@ -316,3 +316,152 @@ class AssessmentAttemptAnswer(Base):
 
     def __repr__(self):
         return f"<AssessmentAttemptAnswer(attempt_id={self.attempt_id}, question_id={self.question_id}, correct={self.is_correct})>"
+
+
+# =====================================================================
+# Institution interviews (V1)
+# =====================================================================
+
+class Institution(Base):
+    __tablename__ = "institutions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class InstitutionMembership(Base):
+    __tablename__ = "institution_memberships"
+    __table_args__ = (
+        UniqueConstraint("institution_id", "user_id", name="uq_institution_membership_user"),
+        CheckConstraint("role IN ('institution_admin', 'faculty', 'student')", name="ck_institution_membership_role"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    institution_id: Mapped[str] = mapped_column(String(36), ForeignKey("institutions.id"), nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    role: Mapped[str] = mapped_column(String(20), nullable=False)  # institution_admin | faculty | student
+    batch: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    branch: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    is_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    institution: Mapped["Institution"] = relationship("Institution")
+    user: Mapped["User"] = relationship("User")
+
+
+class InstitutionInterview(Base):
+    __tablename__ = "institution_interviews"
+    __table_args__ = (
+        CheckConstraint("duration_minutes > 0", name="ck_institution_interview_duration"),
+        CheckConstraint("status IN ('draft', 'published')", name="ck_institution_interview_status"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    institution_id: Mapped[str] = mapped_column(String(36), ForeignKey("institutions.id"), nullable=False, index=True)
+    created_by_user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    instructions: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    deadline: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    eligible_batches: Mapped[List[str]] = mapped_column(JSON, nullable=False, default=list)
+    eligible_branches: Mapped[List[str]] = mapped_column(JSON, nullable=False, default=list)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="draft", index=True)
+    published_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    institution: Mapped["Institution"] = relationship("Institution")
+    rounds: Mapped[List["InstitutionInterviewRound"]] = relationship(
+        "InstitutionInterviewRound", back_populates="interview", cascade="all, delete-orphan", order_by="InstitutionInterviewRound.position"
+    )
+
+
+class InstitutionInterviewRound(Base):
+    __tablename__ = "institution_interview_rounds"
+    __table_args__ = (
+        UniqueConstraint("interview_id", "position", name="uq_institution_round_position"),
+        CheckConstraint("position >= 0", name="ck_institution_round_position"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    interview_id: Mapped[str] = mapped_column(String(36), ForeignKey("institution_interviews.id"), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    interview: Mapped["InstitutionInterview"] = relationship("InstitutionInterview", back_populates="rounds")
+    questions: Mapped[List["InstitutionInterviewQuestion"]] = relationship(
+        "InstitutionInterviewQuestion", back_populates="round", cascade="all, delete-orphan", order_by="InstitutionInterviewQuestion.position"
+    )
+
+
+class InstitutionInterviewQuestion(Base):
+    __tablename__ = "institution_interview_questions"
+    __table_args__ = (
+        UniqueConstraint("round_id", "position", name="uq_institution_question_position"),
+        CheckConstraint("position >= 0", name="ck_institution_question_position"),
+        CheckConstraint("max_score > 0", name="ck_institution_question_max_score"),
+        CheckConstraint("question_type IN ('hr', 'technical', 'mcq')", name="ck_institution_question_type"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    round_id: Mapped[str] = mapped_column(String(36), ForeignKey("institution_interview_rounds.id"), nullable=False, index=True)
+    question_text: Mapped[str] = mapped_column(Text, nullable=False)
+    question_type: Mapped[str] = mapped_column(String(20), nullable=False)  # hr | technical | mcq
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    mcq_options: Mapped[Optional[List[str]]] = mapped_column(JSON, nullable=True)
+    mcq_correct_index: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    max_score: Mapped[float] = mapped_column(Float, nullable=False, default=10.0)
+
+    round: Mapped["InstitutionInterviewRound"] = relationship("InstitutionInterviewRound", back_populates="questions")
+
+
+class InstitutionInterviewAttempt(Base):
+    __tablename__ = "institution_interview_attempts"
+    __table_args__ = (
+        UniqueConstraint("interview_id", "student_user_id", name="uq_institution_attempt_student"),
+        CheckConstraint("status IN ('in_progress', 'evaluation_pending', 'evaluation_failed', 'completed')", name="ck_institution_attempt_status"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    interview_id: Mapped[str] = mapped_column(String(36), ForeignKey("institution_interviews.id"), nullable=False, index=True)
+    student_user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="in_progress", index=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    submitted_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    overall_score_percentage: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    interview: Mapped["InstitutionInterview"] = relationship("InstitutionInterview")
+    student: Mapped["User"] = relationship("User")
+    answers: Mapped[List["InstitutionInterviewAnswer"]] = relationship(
+        "InstitutionInterviewAnswer", back_populates="attempt", cascade="all, delete-orphan"
+    )
+
+
+class InstitutionInterviewAnswer(Base):
+    __tablename__ = "institution_interview_answers"
+    __table_args__ = (
+        UniqueConstraint("attempt_id", "question_id", name="uq_institution_answer_question"),
+        CheckConstraint("selected_option_index IS NULL OR selected_option_index >= 0", name="ck_institution_answer_option_index"),
+        CheckConstraint("evaluation_status IN ('pending', 'completed', 'failed')", name="ck_institution_answer_evaluation_status"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    attempt_id: Mapped[str] = mapped_column(String(36), ForeignKey("institution_interview_attempts.id"), nullable=False, index=True)
+    question_id: Mapped[str] = mapped_column(String(36), ForeignKey("institution_interview_questions.id"), nullable=False, index=True)
+    answer_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    selected_option_index: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    feedback: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    evaluation_status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    evaluation_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    saved_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    attempt: Mapped["InstitutionInterviewAttempt"] = relationship("InstitutionInterviewAttempt", back_populates="answers")
+    question: Mapped["InstitutionInterviewQuestion"] = relationship("InstitutionInterviewQuestion")

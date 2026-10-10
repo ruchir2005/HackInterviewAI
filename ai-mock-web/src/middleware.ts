@@ -20,6 +20,7 @@ export default async function middleware(req: NextRequest) {
         "/InterviewSelectionPage",
         "/assessment",
         "/dashboard",
+        "/institution",
     ];
 
     // Check if the current path starts with any protected route

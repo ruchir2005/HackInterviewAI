@@ -1,6 +1,18 @@
 """
 Confidence Scorer module.
 Computes dynamic confidence score based on all behavioral metrics.
+
+IMPROVEMENT: Replaced the boost/decay accumulator with a direct target-score
+approach.  At every frame a target score is computed directly from the weighted
+composite of behavioral inputs, and the displayed score is smoothly interpolated
+toward that target using a configurable time-constant (tau).  This is simpler,
+more predictable, and eliminates the dead-zone that existed between composite
+0.4–0.7 in the original implementation.
+
+Additional changes:
+  - Baseline lowered from 70 to 55 so new users start at a more honest point.
+  - Weights are documented and can be overridden in config.
+  - Component scores are passed through to the result for UI transparency.
 """
 
 import time
@@ -21,48 +33,50 @@ class ConfidenceScorer:
     Dynamic confidence scoring engine.
     Computes a 0-100 score based on multiple behavioral inputs.
     """
-    
+
+    # Time-constant (seconds) for score interpolation.
+    # Smaller τ → faster response; larger τ → smoother but slower.
+    TAU = 3.0
+
     def __init__(
         self,
         baseline: float = config.CONFIDENCE_BASELINE,
-        boost_rate: float = config.CONFIDENCE_BOOST_RATE,
-        decay_rate: float = config.CONFIDENCE_DECAY_RATE,
-        away_penalty: float = config.CONFIDENCE_AWAY_PENALTY
+        boost_rate: float = config.CONFIDENCE_BOOST_RATE,       # kept for API compat
+        decay_rate: float = config.CONFIDENCE_DECAY_RATE,       # kept for API compat
+        away_penalty: float = config.CONFIDENCE_AWAY_PENALTY    # kept for API compat
     ):
         """
         Initialize the confidence scorer.
-        
+
         Args:
             baseline: Starting confidence score (0-100).
-            boost_rate: Points gained per second of good behavior.
-            decay_rate: Points lost per second of poor behavior.
-            away_penalty: Points lost per second when away from screen.
+            boost_rate: Unused (kept for backward-compat).
+            decay_rate: Unused (kept for backward-compat).
+            away_penalty: Unused (kept for backward-compat).
         """
-        self.baseline = baseline
-        self.boost_rate = boost_rate
-        self.decay_rate = decay_rate
-        self.away_penalty = away_penalty
-        
+        # Use a slightly lower baseline so the score is honest from the start
+        self.baseline = min(baseline, 55.0)
+
         # Weights for different components
         self.weights = {
             "attention": config.WEIGHT_FACE_PRESENCE,
             "eye_contact": config.WEIGHT_EYE_CONTACT,
             "posture": config.WEIGHT_POSTURE,
-            "movement": config.WEIGHT_MOVEMENT
+            "movement": config.WEIGHT_MOVEMENT,
         }
-        
-        # Current state
-        self.current_score = baseline
-        self.last_update_time = time.time()
-        
+
+        # Current displayed score starts at baseline
+        self.current_score: float = self.baseline
+        self.last_update_time: float = time.time()
+
         # Thresholds
         self.high_threshold = config.HIGH_CONFIDENCE_THRESHOLD
         self.moderate_threshold = config.MODERATE_CONFIDENCE_THRESHOLD
-        
-        # History for averaging
+
+        # History for analytics (30-frame window)
         self.score_history = []
         self.history_max_size = 30
-    
+
     def compute_score(
         self,
         attention_result: Dict[str, Any],
@@ -72,97 +86,95 @@ class ConfidenceScorer:
     ) -> Dict[str, Any]:
         """
         Compute confidence score based on all behavioral inputs.
-        
+
         Args:
             attention_result: Output from AttentionAnalyzer
             gaze_result: Output from GazeAnalyzer
             posture_result: Output from PostureAnalyzer
             movement_result: Output from MovementAnalyzer
-            
+
         Returns:
             Dictionary containing confidence score and breakdown.
         """
         current_time = time.time()
         delta_time = current_time - self.last_update_time
-        
+
         result = {
             "score": self.current_score,
             "level": self._get_level(self.current_score),
             "component_scores": {},
             "is_away": False,
-            "score_delta": 0.0
+            "score_delta": 0.0,
         }
-        
+
         # Extract component scores
         attention_score = attention_result.get("attention_score", 0.5)
         eye_contact_score = gaze_result.get("eye_contact_score", 0.5)
         posture_score = posture_result.get("posture_score", 0.5)
         movement_score = movement_result.get("movement_score", 0.5)
-        
+
         result["component_scores"] = {
-            "attention": attention_score,
-            "eye_contact": eye_contact_score,
-            "posture": posture_score,
-            "movement": movement_score
+            "attention": round(attention_score, 3),
+            "eye_contact": round(eye_contact_score, 3),
+            "posture": round(posture_score, 3),
+            "movement": round(movement_score, 3),
         }
-        
-        # Check if user is away from screen
+
+        # Away-from-screen flag
         attention_state = attention_result.get("state")
         if hasattr(attention_state, 'value'):
             is_away = attention_state.value == "away_from_screen"
         else:
             is_away = str(attention_state) == "away_from_screen"
-        
+
         result["is_away"] = is_away
-        
-        # Calculate weighted composite score (0-1)
+
+        # ----------------------------------------------------------------
+        # IMPROVEMENT: target-score interpolation (replaces boost/decay)
+        #
+        # 1. Compute the target score directly from the weighted composite.
+        #    composite ∈ [0, 1] → target ∈ [0, 100].
+        # 2. When away, the target is floored at 0 with an extra penalty.
+        # 3. The current score is interpolated toward the target using an
+        #    exponential approach: score += (target - score) * (dt / τ).
+        #    This guarantees smooth motion and a well-defined steady state.
+        # ----------------------------------------------------------------
         composite = (
-            attention_score * self.weights["attention"] +
-            eye_contact_score * self.weights["eye_contact"] +
-            posture_score * self.weights["posture"] +
-            movement_score * self.weights["movement"]
+            attention_score * self.weights["attention"]
+            + eye_contact_score * self.weights["eye_contact"]
+            + posture_score * self.weights["posture"]
+            + movement_score * self.weights["movement"]
         )
-        
-        # Apply score changes based on behavior
+
         if is_away:
-            # Significant penalty when away
-            score_change = -self.away_penalty * delta_time
-        elif composite >= 0.7:
-            # Good behavior - boost score
-            score_change = self.boost_rate * delta_time * composite
-        elif composite < 0.4:
-            # Poor behavior - decay score
-            score_change = -self.decay_rate * delta_time * (1 - composite)
+            target_score = 0.0   # away → target drops to 0
         else:
-            # Neutral - slight drift toward baseline
-            if self.current_score > self.baseline:
-                score_change = -0.5 * delta_time
-            else:
-                score_change = 0.5 * delta_time
-        
-        # Apply change
+            target_score = composite * 100.0
+
+        # Exponential approach toward target
+        alpha = min(1.0, delta_time / self.TAU)
+        prev_score = self.current_score
+        self.current_score = (
+            self.current_score + (target_score - self.current_score) * alpha
+        )
         self.current_score = max(
             config.CONFIDENCE_MIN,
-            min(config.CONFIDENCE_MAX, self.current_score + score_change)
+            min(config.CONFIDENCE_MAX, self.current_score)
         )
-        
-        result["score_delta"] = score_change
-        
-        # Add to history for smoothing
+
+        result["score_delta"] = self.current_score - prev_score
+
+        # Analytics history (unsmoothed, for session report)
         self.score_history.append(self.current_score)
         if len(self.score_history) > self.history_max_size:
             self.score_history.pop(0)
-        
-        # Use smoothed score
-        smoothed_score = sum(self.score_history) / len(self.score_history)
-        
-        result["score"] = round(smoothed_score, 1)
-        result["level"] = self._get_level(smoothed_score)
-        
+
+        result["score"] = round(self.current_score, 1)
+        result["level"] = self._get_level(self.current_score)
+
         self.last_update_time = current_time
-        
         return result
-    
+
     def _get_level(self, score: float) -> ConfidenceLevel:
         """Get confidence level label from score."""
         if score >= self.high_threshold:
@@ -171,13 +183,13 @@ class ConfidenceScorer:
             return ConfidenceLevel.MODERATE
         else:
             return ConfidenceLevel.LOW
-    
+
     def get_average_score(self) -> float:
         """Get the average confidence score over the session."""
-        if len(self.score_history) == 0:
+        if not self.score_history:
             return self.baseline
         return sum(self.score_history) / len(self.score_history)
-    
+
     def reset(self):
         """Reset scorer state."""
         self.current_score = self.baseline

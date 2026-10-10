@@ -194,6 +194,10 @@ class BehaviorAnalysisEngine:
         self.frame_count = 0
         self.start_time = time.time()
         self.session_analytics.start_session()
+        # Reset per-session gaze calibration so each user gets their own
+        # personal iris center baseline instead of the hardcoded (0.5, 0.5).
+        if hasattr(self.gaze_detector, 'reset_calibration'):
+            self.gaze_detector.reset_calibration()
     
     def end_session(self) -> Dict[str, Any]:
         """
@@ -245,6 +249,9 @@ class BehaviorAnalysisEngine:
         self.session_analytics.reset()
         self.frame_count = 0
         self.start_time = None
+        # Reset gaze calibration so the new session builds a fresh iris baseline
+        if hasattr(self.gaze_detector, 'reset_calibration'):
+            self.gaze_detector.reset_calibration()
     
     def set_on_frame_callback(self, callback: Callable):
         """

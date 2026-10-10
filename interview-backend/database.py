@@ -73,6 +73,9 @@ async def init_db():
             User, InterviewSession, Question, SoftSkillsMetric, TokenUsage,
             AssessmentCategory, AssessmentQuestion, AssessmentQuestionOption,
             AssessmentAttempt, AssessmentAttemptAnswer,
+            Institution, InstitutionMembership, InstitutionInterview,
+            InstitutionInterviewRound, InstitutionInterviewQuestion,
+            InstitutionInterviewAttempt, InstitutionInterviewAnswer,
         )
         
         logger.info("Creating database tables...")

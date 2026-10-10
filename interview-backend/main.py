@@ -70,6 +70,7 @@ from routes.tokens import router as tokens_router
 from routes.posture import router as posture_router
 from routes.assessment import router as assessment_router
 from routes.admin_assessment import router as admin_assessment_router
+from routes.institution import router as institution_router
 
 app.include_router(auth_router)
 app.include_router(interview_router)
@@ -81,6 +82,7 @@ app.include_router(tokens_router)
 app.include_router(posture_router)
 app.include_router(assessment_router)
 app.include_router(admin_assessment_router)
+app.include_router(institution_router)
 
 # -------------------------------------------------------------------
 # Health-check
