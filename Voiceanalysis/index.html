@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voice Analysis — openSMILE Features Demo</title>
+    <meta name="description"
+        content="Interactive dashboard showcasing openSMILE voice analysis features, derived scores, and optimal interview values." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+    <!-- ───── Background Particles ───── -->
+    <canvas id="particles"></canvas>
+
+    <!-- ───── Header ───── -->
+    <header class="hero">
+        <div class="hero-badge">openSMILE · eGeMAPS</div>
+        <h1>Voice <span class="gradient-text">Analysis</span> Dashboard</h1>
+        <p class="hero-sub">Real-time voice feature extraction &amp; interview readiness scoring</p>
+        <div class="hero-actions">
+            <button id="btn-record" class="btn btn-record">🎙️ Record Your Voice</button>
+            <button id="btn-demo" class="btn btn-primary">▶ Run Demo</button>
+            <button id="btn-reset" class="btn btn-ghost">↻ Reset</button>
+        </div>
+        <div id="recording-status" class="recording-status hidden">
+            <span class="rec-dot"></span>
+            <span id="rec-timer">0:00</span>
+            <span class="rec-hint">Speak naturally for 5-15 seconds, then click Stop</span>
+        </div>
+    </header>
+
+    <!-- ───── Live Meter Section ───── -->
+    <section class="section" id="live-section">
+        <h2 class="section-title">Live Metrics</h2>
+        <p class="section-desc">Click <strong>Run Demo Analysis</strong> to simulate a voice sample passing through the
+            pipeline.</p>
+
+        <div class="meters-grid">
+            <!-- Pitch Mean -->
+            <div class="meter-card" data-metric="pitchMean">
+                <div class="meter-header">
+                    <span class="meter-icon">🎵</span>
+                    <span class="meter-label">Pitch Mean (F0)</span>
+                </div>
+                <div class="meter-bar-wrap">
+                    <div class="meter-bar" style="--bar-color: var(--cyan)"></div>
+                </div>
+                <div class="meter-value">— <small>semitones</small></div>
+                <div class="meter-sub">F0semitoneFrom27.5Hz_sma3nz_amean</div>
+            </div>
+
+            <!-- Pitch Variance -->
+            <div class="meter-card" data-metric="pitchVar">
+                <div class="meter-header">
+                    <span class="meter-icon">📊</span>
+                    <span class="meter-label">Pitch Variance</span>
+                </div>
+                <div class="meter-bar-wrap">
+                    <div class="meter-bar" style="--bar-color: var(--purple)"></div>
+                </div>
+                <div class="meter-value">— <small>normalized</small></div>
+                <div class="meter-sub">F0semitoneFrom27.5Hz_sma3nz_stddevNorm</div>
+            </div>
+
+            <!-- Loudness Mean -->
+            <div class="meter-card" data-metric="loudMean">
+                <div class="meter-header">
+                    <span class="meter-icon">🔊</span>
+                    <span class="meter-label">Loudness Mean</span>
+                </div>
+                <div class="meter-bar-wrap">
+                    <div class="meter-bar" style="--bar-color: var(--orange)"></div>
+                </div>
+                <div class="meter-value">— <small>sone</small></div>
+                <div class="meter-sub">loudness_sma3_amean</div>
+            </div>
+
+            <!-- Loudness Variance -->
+            <div class="meter-card" data-metric="loudVar">
+                <div class="meter-header">
+                    <span class="meter-icon">📈</span>
+                    <span class="meter-label">Loudness Variance</span>
+                </div>
+                <div class="meter-bar-wrap">
+                    <div class="meter-bar" style="--bar-color: var(--pink)"></div>
+                </div>
+                <div class="meter-value">— <small>normalized</small></div>
+                <div class="meter-sub">loudness_sma3_stddevNorm</div>
+            </div>
+
+            <!-- Jitter -->
+            <div class="meter-card" data-metric="jitter">
+                <div class="meter-header">
+                    <span class="meter-icon">⚡</span>
+                    <span class="meter-label">Jitter</span>
+                </div>
+                <div class="meter-bar-wrap">
+                    <div class="meter-bar" style="--bar-color: var(--red)"></div>
+                </div>
+                <div class="meter-value">— <small>%</small></div>
+                <div class="meter-sub">jitterLocal_sma3nz_amean</div>
+            </div>
+
+            <!-- Shimmer -->
+            <div class="meter-card" data-metric="shimmer">
+                <div class="meter-header">
+                    <span class="meter-icon">🌊</span>
+                    <span class="meter-label">Shimmer</span>
+                </div>
+                <div class="meter-bar-wrap">
+                    <div class="meter-bar" style="--bar-color: var(--teal)"></div>
+                </div>
+                <div class="meter-value">— <small>dB</small></div>
+                <div class="meter-sub">shimmerLocaldB_sma3nz_amean</div>
+            </div>
+
+            <!-- Speech Rate -->
+            <div class="meter-card" data-metric="speechRate">
+                <div class="meter-header">
+                    <span class="meter-icon">🗣️</span>
+                    <span class="meter-label">Speech Rate</span>
+                </div>
+                <div class="meter-bar-wrap">
+                    <div class="meter-bar" style="--bar-color: var(--green)"></div>
+                </div>
+                <div class="meter-value">— <small>syl/s</small></div>
+                <div class="meter-sub">Estimated syllables per second</div>
+            </div>
+
+            <!-- Pause Ratio -->
+            <div class="meter-card" data-metric="pauseRatio">
+                <div class="meter-header">
+                    <span class="meter-icon">⏸️</span>
+                    <span class="meter-label">Pause Ratio</span>
+                </div>
+                <div class="meter-bar-wrap">
+                    <div class="meter-bar" style="--bar-color: var(--yellow)"></div>
+                </div>
+                <div class="meter-value">— <small>%</small></div>
+                <div class="meter-sub">Silence-to-speech ratio</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ───── Derived Scores ───── -->
+    <section class="section" id="scores-section">
+        <h2 class="section-title">Derived Scores</h2>
+        <p class="section-desc">Composite 0–5 scores computed from raw features.</p>
+
+        <div class="scores-row">
+            <!-- Tone Score -->
+            <div class="score-ring-card" data-score="tone">
+                <svg class="ring" viewBox="0 0 120 120">
+                    <circle class="ring-bg" cx="60" cy="60" r="52" />
+                    <circle class="ring-fill" cx="60" cy="60" r="52" style="--ring-color: var(--cyan)" />
+                </svg>
+                <div class="ring-label">—</div>
+                <h3>Tone</h3>
+                <p>Pitch expressiveness<br />5 = warm &amp; engaging</p>
+            </div>
+
+            <!-- Confidence Score -->
+            <div class="score-ring-card" data-score="confidence">
+                <svg class="ring" viewBox="0 0 120 120">
+                    <circle class="ring-bg" cx="60" cy="60" r="52" />
+                    <circle class="ring-fill" cx="60" cy="60" r="52" style="--ring-color: var(--green)" />
+                </svg>
+                <div class="ring-label">—</div>
+                <h3>Confidence</h3>
+                <p>Voice stability<br />5 = stable &amp; assured</p>
+            </div>
+
+            <!-- Pace Score -->
+            <div class="score-ring-card" data-score="pace">
+                <svg class="ring" viewBox="0 0 120 120">
+                    <circle class="ring-bg" cx="60" cy="60" r="52" />
+                    <circle class="ring-fill" cx="60" cy="60" r="52" style="--ring-color: var(--orange)" />
+                </svg>
+                <div class="ring-label">—</div>
+                <h3>Pace</h3>
+                <p>Speaking rhythm<br />5 = optimal tempo</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ───── Optimal Values Table ───── -->
+    <section class="section" id="optimal-section">
+        <h2 class="section-title">Optimal Interview Values</h2>
+        <p class="section-desc">Reference thresholds for interview readiness, sourced from published research.</p>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th class="col-poor">Poor</th>
+                        <th class="col-avg">Average</th>
+                        <th class="col-exc">Excellent</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Pitch Variance</td>
+                        <td class="col-poor">&lt;0.1 or &gt;0.5</td>
+                        <td class="col-avg">0.1 – 0.2</td>
+                        <td class="col-exc">0.2 – 0.35</td>
+                    </tr>
+                    <tr>
+                        <td>Jitter</td>
+                        <td class="col-poor">&gt;0.04 (4%)</td>
+                        <td class="col-avg">0.02 – 0.04</td>
+                        <td class="col-exc">&lt;0.02 (2%)</td>
+                    </tr>
+                    <tr>
+                        <td>Shimmer</td>
+                        <td class="col-poor">&gt;1.5 dB</td>
+                        <td class="col-avg">0.8 – 1.5 dB</td>
+                        <td class="col-exc">&lt;0.8 dB</td>
+                    </tr>
+                    <tr>
+                        <td>Pause Ratio</td>
+                        <td class="col-poor">&gt;35% or &lt;10%</td>
+                        <td class="col-avg">15 – 25%</td>
+                        <td class="col-exc">18 – 22%</td>
+                    </tr>
+                    <tr>
+                        <td>Speech Rate</td>
+                        <td class="col-poor">&lt;2 or &gt;5 syl/s</td>
+                        <td class="col-avg">2 – 3 syl/s</td>
+                        <td class="col-exc">3 – 4 syl/s</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- ───── Feature Reference ───── -->
+    <section class="section" id="reference-section">
+        <h2 class="section-title">Feature Reference</h2>
+        <p class="section-desc">Raw features extracted via the eGeMAPS feature set.</p>
+
+        <div class="ref-grid">
+            <div class="ref-card">
+                <h4>Pitch Mean (F0)</h4>
+                <code>F0semitoneFrom27.5Hz_sma3nz_amean</code>
+                <p><strong>Range:</strong> 0–40 semitones</p>
+                <p>Overall voice pitch — male ~12-20, female ~20-30 semitones.</p>
+            </div>
+            <div class="ref-card">
+                <h4>Pitch Variance</h4>
+                <code>F0semitoneFrom27.5Hz_sma3nz_stddevNorm</code>
+                <p><strong>Range:</strong> 0.0–1.0</p>
+                <p>Expressiveness — monotone (low) vs animated (high).</p>
+            </div>
+            <div class="ref-card">
+                <h4>Pitch Range</h4>
+                <code>percentile80 − percentile20</code>
+                <p><strong>Range:</strong> 0–20 semitones</p>
+                <p>Dynamic range — flat vs expressive speaking.</p>
+            </div>
+            <div class="ref-card">
+                <h4>Loudness Mean</h4>
+                <code>loudness_sma3_amean</code>
+                <p><strong>Range:</strong> 0.0–1.0 sone</p>
+                <p>Volume/energy — soft vs loud speaker.</p>
+            </div>
+            <div class="ref-card">
+                <h4>Loudness Variance</h4>
+                <code>loudness_sma3_stddevNorm</code>
+                <p><strong>Range:</strong> 0.0–0.5</p>
+                <p>Volume consistency — steady vs fluctuating.</p>
+            </div>
+            <div class="ref-card">
+                <h4>Jitter</h4>
+                <code>jitterLocal_sma3nz_amean</code>
+                <p><strong>Range:</strong> 0.01–0.05 (1–5%)</p>
+                <p>Pitch instability — nervousness marker.</p>
+            </div>
+            <div class="ref-card">
+                <h4>Shimmer</h4>
+                <code>shimmerLocaldB_sma3nz_amean</code>
+                <p><strong>Range:</strong> 0.5–2.0 dB</p>
+                <p>Amplitude instability — voice tremor.</p>
+            </div>
+            <div class="ref-card">
+                <h4>Speech Rate</h4>
+                <code>syllables / second</code>
+                <p><strong>Range:</strong> 2–5 syl/s</p>
+                <p>Pace — slow (1-2) vs fast (5+).</p>
+            </div>
+            <div class="ref-card">
+                <h4>Pause Ratio</h4>
+                <code>silence / total duration</code>
+                <p><strong>Range:</strong> 10–40%</p>
+                <p>Hesitation — fluent (10%) vs lots of pauses (40%).</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ───── Scoring Formulas ───── -->
+    <section class="section" id="formulas-section">
+        <h2 class="section-title">Scoring Formulas</h2>
+        <p class="section-desc">How raw features are transformed into the 0–5 composite scores.</p>
+
+        <div class="formula-cards">
+            <div class="formula-card">
+                <div class="formula-icon" style="background: var(--cyan)">T</div>
+                <div>
+                    <h4>Tone Score</h4>
+                    <code>5 × (1 − |normalized_var − 0.5| × 2)</code>
+                    <p>Rewards moderate pitch variance; penalizes both monotone and erratic delivery.</p>
+                </div>
+            </div>
+            <div class="formula-card">
+                <div class="formula-icon" style="background: var(--green)">C</div>
+                <div>
+                    <h4>Confidence Score</h4>
+                    <code>5 − (jitter × 50) − (shimmer × 2)</code>
+                    <p>Deducts from a perfect score for every bit of pitch/amplitude instability.</p>
+                </div>
+            </div>
+            <div class="formula-card">
+                <div class="formula-icon" style="background: var(--orange)">P</div>
+                <div>
+                    <h4>Pace Score</h4>
+                    <code>avg(pause_score, rate_score)</code>
+                    <p>Averages sub-scores for pause ratio and speech rate; both need to be optimal.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ───── Sources ───── -->
+    <section class="section" id="sources-section">
+        <h2 class="section-title">Sources</h2>
+        <div class="sources-grid">
+            <div class="source-card">
+                <span class="source-num">1</span>
+                <div>
+                    <strong>Jitter &amp; Shimmer</strong>
+                    <p>Teixeira et al. (2013) — <em>Vocal Acoustic Analysis</em>. Normal jitter &lt;1.04%, shimmer
+                        &lt;3.81%.</p>
+                </div>
+            </div>
+            <div class="source-card">
+                <span class="source-num">2</span>
+                <div>
+                    <strong>Pitch Variance</strong>
+                    <p>Eyben et al. (2016) — <em>eGeMAPS</em>. stddevNorm ~0.15-0.35 = natural expressiveness.</p>
+                </div>
+            </div>
+            <div class="source-card">
+                <span class="source-num">3</span>
+                <div>
+                    <strong>Speech Rate</strong>
+                    <p>Goldman-Eisler (1968) — <em>Psycholinguistics</em>. Formal interviews 2–4 syl/s.</p>
+                </div>
+            </div>
+            <div class="source-card">
+                <span class="source-num">4</span>
+                <div>
+                    <strong>Pause Ratio</strong>
+                    <p>Levinson (1983); Campione &amp; Véronis (2002). Professional presentations 15–25%.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>Voice Analysis Demo &middot; Powered by openSMILE &amp; eGeMAPS Feature Set</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

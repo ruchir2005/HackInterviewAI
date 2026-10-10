@@ -1,0 +1,645 @@
+/* ── Design Tokens ──────────────────────────────────────── */
+:root {
+  --bg: #0b0e17;
+  --surface: #131829;
+  --surface2: #1a2035;
+  --border: rgba(255, 255, 255, .06);
+  --text: #e4e8f1;
+  --text-dim: #8891a8;
+  --cyan: #00d4ff;
+  --purple: #a855f7;
+  --green: #22d38e;
+  --orange: #ff8c42;
+  --pink: #f472b6;
+  --red: #ef4444;
+  --teal: #14b8a6;
+  --yellow: #fbbf24;
+  --radius: 14px;
+  --shadow: 0 8px 32px rgba(0, 0, 0, .45);
+}
+
+/* ── Reset & Base ──────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* ── Particle Canvas ───────────────────────────────────── */
+#particles {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ── Utility ───────────────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, var(--cyan), var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── Hero ──────────────────────────────────────────────── */
+.hero {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 5rem 1.5rem 3rem;
+}
+
+.hero-badge {
+  display: inline-block;
+  padding: .35rem 1rem;
+  border: 1px solid var(--cyan);
+  border-radius: 999px;
+  color: var(--cyan);
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: 1.2rem;
+  background: rgba(0, 212, 255, .06);
+}
+
+.hero h1 {
+  font-size: clamp(2.2rem, 5vw, 4rem);
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.hero-sub {
+  color: var(--text-dim);
+  font-size: 1.1rem;
+  margin-top: .6rem;
+  max-width: 520px;
+  margin-inline: auto;
+}
+
+.hero-actions {
+  display: flex;
+  gap: .75rem;
+  justify-content: center;
+  margin-top: 2rem
+}
+
+/* ── Buttons ───────────────────────────────────────────── */
+.btn {
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: .95rem;
+  padding: .7rem 1.6rem;
+  transition: all .25s;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--cyan), var(--purple));
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(0, 212, 255, .3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 28px rgba(0, 212, 255, .45)
+}
+
+.btn-record {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(239, 68, 68, .3);
+}
+
+.btn-record:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 28px rgba(239, 68, 68, .45)
+}
+
+.btn-record.recording {
+  background: linear-gradient(135deg, #b91c1c, #991b1b);
+  animation: pulse-btn 1.2s ease infinite;
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+.btn-ghost:hover {
+  border-color: var(--text-dim);
+  color: var(--text)
+}
+
+/* ── Recording Status ──────────────────────────────────── */
+.recording-status {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  justify-content: center;
+  margin-top: 1rem;
+  font-size: .9rem;
+  color: var(--text);
+}
+
+.recording-status.hidden {
+  display: none
+}
+
+.rec-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: pulse-dot 1s ease infinite;
+}
+
+.rec-hint {
+  color: var(--text-dim);
+  font-size: .8rem
+}
+
+#rec-timer {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 3ch
+}
+
+@keyframes pulse-dot {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1)
+  }
+
+  50% {
+    opacity: .4;
+    transform: scale(1.3)
+  }
+}
+
+@keyframes pulse-btn {
+
+  0%,
+  100% {
+    box-shadow: 0 4px 20px rgba(239, 68, 68, .3)
+  }
+
+  50% {
+    box-shadow: 0 4px 30px rgba(239, 68, 68, .6)
+  }
+}
+
+/* ── Sections ──────────────────────────────────────────── */
+.section {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+}
+
+.section-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: .3rem;
+}
+
+.section-desc {
+  color: var(--text-dim);
+  font-size: .95rem;
+  margin-bottom: 2rem;
+  max-width: 600px;
+}
+
+/* ── Meter Cards Grid ──────────────────────────────────── */
+.meters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.meter-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.3rem;
+  transition: transform .3s, box-shadow .3s;
+}
+
+.meter-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow);
+}
+
+.meter-header {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  margin-bottom: .8rem
+}
+
+.meter-icon {
+  font-size: 1.3rem
+}
+
+.meter-label {
+  font-weight: 600;
+  font-size: .92rem
+}
+
+.meter-bar-wrap {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface2);
+  overflow: hidden;
+}
+
+.meter-bar {
+  height: 100%;
+  width: 0;
+  border-radius: 3px;
+  background: var(--bar-color, var(--cyan));
+  transition: width 1.2s cubic-bezier(.22, 1, .36, 1);
+}
+
+.meter-value {
+  margin-top: .65rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.meter-value small {
+  font-size: .7rem;
+  font-weight: 400;
+  color: var(--text-dim)
+}
+
+.meter-sub {
+  margin-top: .25rem;
+  font-size: .7rem;
+  color: var(--text-dim);
+  font-family: 'SF Mono', Consolas, monospace;
+  word-break: break-all;
+}
+
+/* ── Score Rings ───────────────────────────────────────── */
+.scores-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+}
+
+.score-ring-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2rem 2.2rem;
+  text-align: center;
+  width: 220px;
+  position: relative;
+  transition: transform .3s, box-shadow .3s;
+}
+
+.score-ring-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow)
+}
+
+.ring {
+  width: 110px;
+  height: 110px;
+  margin: 0 auto;
+  transform: rotate(-90deg)
+}
+
+.ring-bg {
+  fill: none;
+  stroke: var(--surface2);
+  stroke-width: 8
+}
+
+.ring-fill {
+  fill: none;
+  stroke: var(--ring-color, var(--cyan));
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 326.73;
+  /* 2π×52 */
+  stroke-dashoffset: 326.73;
+  transition: stroke-dashoffset 1.4s cubic-bezier(.22, 1, .36, 1);
+}
+
+.ring-label {
+  position: absolute;
+  top: 2rem;
+  left: 0;
+  right: 0;
+  width: 110px;
+  height: 110px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.score-ring-card h3 {
+  margin-top: .8rem;
+  font-size: 1rem;
+  font-weight: 700
+}
+
+.score-ring-card p {
+  font-size: .78rem;
+  color: var(--text-dim);
+  line-height: 1.45;
+  margin-top: .3rem
+}
+
+/* ── Optimal Values Table ──────────────────────────────── */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .9rem
+}
+
+thead {
+  background: var(--surface2)
+}
+
+th,
+td {
+  padding: .85rem 1.2rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border)
+}
+
+th {
+  font-weight: 600;
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-dim)
+}
+
+.col-poor {
+  color: var(--red)
+}
+
+.col-avg {
+  color: var(--yellow)
+}
+
+.col-exc {
+  color: var(--green)
+}
+
+/* ── Reference Grid ────────────────────────────────────── */
+.ref-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.ref-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.3rem;
+  transition: transform .3s, box-shadow .3s;
+}
+
+.ref-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow)
+}
+
+.ref-card h4 {
+  font-size: .95rem;
+  margin-bottom: .5rem
+}
+
+.ref-card code {
+  display: inline-block;
+  padding: .2rem .5rem;
+  border-radius: 6px;
+  background: var(--surface2);
+  font-size: .72rem;
+  color: var(--cyan);
+  margin-bottom: .55rem;
+  word-break: break-all;
+}
+
+.ref-card p {
+  font-size: .82rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin-top: .15rem
+}
+
+/* ── Formula Cards ─────────────────────────────────────── */
+.formula-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem
+}
+
+.formula-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.3rem;
+  transition: transform .3s;
+}
+
+.formula-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow)
+}
+
+.formula-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: #fff;
+}
+
+.formula-card h4 {
+  font-size: .95rem;
+  margin-bottom: .35rem
+}
+
+.formula-card code {
+  display: inline-block;
+  padding: .2rem .5rem;
+  border-radius: 6px;
+  background: var(--surface2);
+  font-size: .75rem;
+  color: var(--purple);
+  margin-bottom: .4rem;
+}
+
+.formula-card p {
+  font-size: .82rem;
+  color: var(--text-dim);
+  line-height: 1.5
+}
+
+/* ── Sources ───────────────────────────────────────────── */
+.sources-grid {
+  display: flex;
+  flex-direction: column;
+  gap: .9rem
+}
+
+.source-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.3rem;
+}
+
+.source-num {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--cyan), var(--purple));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: .85rem;
+}
+
+.source-card strong {
+  font-size: .9rem
+}
+
+.source-card p {
+  font-size: .8rem;
+  color: var(--text-dim);
+  margin-top: .15rem;
+  line-height: 1.5
+}
+
+/* ── Footer ────────────────────────────────────────────── */
+footer {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 3rem 1.5rem 2rem;
+  font-size: .82rem;
+  color: var(--text-dim);
+  border-top: 1px solid var(--border);
+  max-width: 1100px;
+  margin: 2rem auto 0;
+}
+
+/* ── Responsive ────────────────────────────────────────── */
+@media(max-width:640px) {
+
+  .meters-grid,
+  .ref-grid {
+    grid-template-columns: 1fr
+  }
+
+  .scores-row {
+    flex-direction: column;
+    align-items: center
+  }
+
+  .hero h1 {
+    font-size: 2rem
+  }
+}
+
+/* ── Animations ────────────────────────────────────────── */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px)
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0)
+  }
+}
+
+.meter-card,
+.score-ring-card,
+.ref-card,
+.formula-card,
+.source-card {
+  animation: fadeUp .5s ease both;
+}
+
+.meter-card:nth-child(2) {
+  animation-delay: .05s
+}
+
+.meter-card:nth-child(3) {
+  animation-delay: .1s
+}
+
+.meter-card:nth-child(4) {
+  animation-delay: .15s
+}
+
+.meter-card:nth-child(5) {
+  animation-delay: .2s
+}
+
+.meter-card:nth-child(6) {
+  animation-delay: .25s
+}
+
+.meter-card:nth-child(7) {
+  animation-delay: .3s
+}
+
+.meter-card:nth-child(8) {
+  animation-delay: .35s
+}
