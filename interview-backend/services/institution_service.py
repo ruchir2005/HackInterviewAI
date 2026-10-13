@@ -111,9 +111,11 @@ async def get_interview(db: AsyncSession, interview_id: str) -> InstitutionInter
 
 
 def is_eligible(membership: InstitutionMembership, interview: InstitutionInterview) -> bool:
-    batches = interview.eligible_batches or []
-    branches = interview.eligible_branches or []
-    return (not batches or membership.batch in batches) and (not branches or membership.branch in branches)
+    batches = [b.strip().lower() for b in (interview.eligible_batches or []) if b]
+    branches = [b.strip().lower() for b in (interview.eligible_branches or []) if b]
+    student_batch = membership.batch.strip().lower() if membership.batch else None
+    student_branch = membership.branch.strip().lower() if membership.branch else None
+    return (not batches or student_batch in batches) and (not branches or student_branch in branches)
 
 
 def question_out(question: InstitutionInterviewQuestion, include_key: bool = False) -> dict:
